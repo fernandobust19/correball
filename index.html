@@ -1184,11 +1184,11 @@
             if (oldMode !== cameraMode) {
                 let cameraName = '';
                 if (cameraMode === 'leader' || cameraMode === 'leader-final') {
-                    cameraName = 'CÁMARA 1';
+                    cameraName = 'PRIMEROS LUGARES';
                 } else if (cameraMode === 'mid') {
-                    cameraName = 'CÁMARA 2';
+                    cameraName = 'SEGUNDOS LUGARES';
                 } else {
-                    cameraName = 'CÁMARA 3';
+                    cameraName = 'TERCEROS LUGARES';
                 }
                 showCameraIndicator(cameraName, cameraMode);
             }
@@ -1233,7 +1233,22 @@
             let g = ctx.createLinearGradient(0,0,20,0); g.addColorStop(0,'#00F3FF'); g.addColorStop(1,'#0000'); ctx.fillStyle=g; ctx.fillRect(0,0,20,height);
             let g2 = ctx.createLinearGradient(width,0,width-20,0); g2.addColorStop(0,'#FF0055'); g2.addColorStop(1,'#0000'); ctx.fillStyle=g2; ctx.fillRect(width-20,0,20,height);
             if (!gateOpen) { ctx.save(); ctx.translate(0, -cameraY); ctx.fillStyle = 'rgba(255,0,255,0.8)'; ctx.fillRect(20, 215, width-40, 10); ctx.restore(); }
-            ctx.save(); ctx.translate(0, -cameraY); ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(20, finishLineY, width-40, 1000); for(let i=0; i<10; i++) { ctx.fillStyle = i%2===0 ? '#FFF' : 'transparent'; ctx.fillRect(20, finishLineY + i*40, width-40, 40); } ctx.restore();
+            ctx.save(); 
+            ctx.translate(0, -cameraY); 
+            const finishZoneHeight = 240;
+            ctx.fillStyle = 'rgba(255,255,255,0.05)'; 
+            ctx.fillRect(20, finishLineY, width-40, finishZoneHeight + 760);
+            const cell = 24;
+            for (let yy = 0; yy < finishZoneHeight; yy += cell) {
+                for (let xx = 20; xx < width - 20; xx += cell) {
+                    const row = Math.floor(yy / cell);
+                    const col = Math.floor((xx - 20) / cell);
+                    const isWhite = (row + col) % 2 === 0;
+                    ctx.fillStyle = isWhite ? '#FFFFFF' : '#000000';
+                    ctx.fillRect(xx, finishLineY + yy, cell, cell);
+                }
+            }
+            ctx.restore();
         }
 
         function loop() {
