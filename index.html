@@ -257,7 +257,7 @@
         const DEFAULT_RADIUS = 6; 
         const EFFECT_DURATION = 600; 
         const MAX_SPEED = 14; 
-        const CAMERA_SWITCH_FRAMES = 300; 
+        const CAMERA_SWITCH_FRAMES = 600; 
         const FINAL_CAMERA_DISTANCE = 1800; 
         const PARACHUTE_DURATION = 60 * 5;
         const PARACHUTE_DRAG = 0.35;
@@ -846,7 +846,7 @@
         }
 
         function obstacleRadius(o) {
-            if (o.type === 'peg') return (o.r || 2.5) + 8;
+            if (o.type === 'peg') return (o.r || 2.5) + 6;
             if (o.r) return o.r + 12;
             if (o.w && o.h) return Math.max(o.w, o.h) / 2 + 18;
             return 20;
@@ -947,7 +947,7 @@
         function generateTrack() {
             obstacles = []; let y = 1200; 
             const specials = ['spiral','cup','portal','shuriken','chamfer_bar','bear','spiral','portal','cross','vortex','electrifier','slow_field','airplane'];
-            let specialIdx = 0; let nextSpecialY = 1200; const SAFE_DIST_PEG = 12; let lastSpringY = -1000; 
+            let specialIdx = 0; let nextSpecialY = 1200; const SAFE_DIST_PEG = 10; let lastSpringY = -1000; 
             let mushroomY = [2000, 5000, 8000, 11000]; let jellyY = [3000, 6000, 9000, 12000, 14000]; 
             const springZones = [ { start: 2400, end: 2600 }, { start: 4400, end: 4600 }, { start: 6400, end: 6600 }, { start: 8400, end: 8600 }, { start: 11400, end: 11600 }, { start: 14400, end: 14600 } ];
 
@@ -993,7 +993,7 @@
                     else if (rightObstacleType < 0.5) { obstacles.push(new Obstacle(width-15, y, 'peg')); }
                     else { let sw = 70; let sx = width - 30; obstacles.push(new Obstacle(sx, y, 'stair', {w:sw, h:15, side: -1})); currentRamps.push({x:sx, w:sw}); }
                 }
-                let densityBase = placedSpring ? 28 : 65; let density = densityBase + (progress * 40); 
+                let densityBase = placedSpring ? 35 : 80; let density = densityBase + (progress * 45); 
                 if (y >= START_BLOCK_Y) {
                     for(let i=0; i<density; i++) {
                         let px = 30 + Math.random() * (width - 60); let py = y + (Math.random() * 45) - 22; let safe = true;
@@ -1008,7 +1008,7 @@
                         }
                         if (safe) obstacles.push(new Obstacle(px, py, 'peg'));
                     }
-                    if (!isSpecialRow && Math.random() < 0.35) {
+                    if (!isSpecialRow && Math.random() < 0.45) {
                         let extraX = 40 + Math.random() * (width - 80);
                         obstacles.push(new Obstacle(extraX, y + Math.random()*30 - 15, 'peg'));
                     }
@@ -1020,12 +1020,13 @@
                 } else {
                     fillerDelay--;
                 }
-                y += 40; 
+                y += 35; 
             }
             obstacles = pruneOverlaps(obstacles);
             addWallRamps();
             addWallSprings();
             addCenterCrosses();
+            addZigZagFunnel();
             ensureLateAirplane();
             obstacles = pruneOverlaps(obstacles);
             addPegMesh();
@@ -1033,9 +1034,9 @@
         }
 
         function addWallRamps() {
-            for (let y = START_BLOCK_Y; y < finishLineY; y += WALL_RAMP_STEP) {
-                obstacles.push(new Obstacle(24, y + (Math.random()*90 - 45), 'ramp', {w:50, h:14, side: 1, isBouncy: Math.random() > 0.4}));
-                obstacles.push(new Obstacle(width - 24, y + (Math.random()*90 - 45), 'ramp', {w:50, h:14, side: -1, isBouncy: Math.random() > 0.4}));
+            for (let y = START_BLOCK_Y; y < finishLineY; y += Math.max(90, WALL_RAMP_STEP - 40)) {
+                obstacles.push(new Obstacle(24, y + (Math.random()*80 - 40), 'ramp', {w:55, h:16, side: 1, isBouncy: true}));
+                obstacles.push(new Obstacle(width - 24, y + (Math.random()*80 - 40), 'ramp', {w:55, h:16, side: -1, isBouncy: true}));
             }
         }
 
@@ -1052,6 +1053,37 @@
             }
         }
 
+        function addZigZagFunnel() {
+            const midY = finishLineY * 0.55;
+            const segments = 7;
+            const stepY = 120;
+            const slideWidth = Math.max(140, width * 0.3);
+            const offsetX = width * 0.3;
+
+            for (let i = 0; i < segments; i++) {
+                const side = (i % 2 === 0) ? 1 : -1;
+                const x = (side === 1) ? (width/2 - offsetX) : (width/2 + offsetX);
+                const y = midY + i * stepY;
+                obstacles.push(new Obstacle(x, y, 'ramp', { w: slideWidth, h: 18, side, isBouncy: true }));
+                obstacles.push(new Obstacle(x, y + 25, 'peg'));
+                obstacles.push(new Obstacle(x, y - 25, 'peg'));
+            }
+
+            const funnelY = midY + segments * stepY + 80;
+            const funnelX = width / 2;
+            const funnelRadius = Math.max(70, width * 0.08);
+            const gapSize = 0.12;
+            for (let ang = 0; ang < Math.PI * 2; ang += 0.35) {
+                if (ang > (Math.PI * 2 - gapSize)) continue;
+                const px = funnelX + Math.cos(ang) * funnelRadius;
+                const py = funnelY + Math.sin(ang) * funnelRadius;
+                obstacles.push(new Obstacle(px, py, 'peg'));
+            }
+            obstacles.push(new Obstacle(funnelX, funnelY - funnelRadius - 25, 'ramp', { w: funnelRadius * 1.6, h: 18, side: 1, isBouncy: true }));
+            obstacles.push(new Obstacle(funnelX, funnelY + 20, 'peg'));
+            obstacles.push(new Obstacle(funnelX, funnelY + 40, 'peg'));
+        }
+
         function ensureLateAirplane() {
             if (!obstacles.some(o => o.type === 'airplane' && o.pos.y > finishLineY - 2200)) {
                 obstacles.push(new Obstacle(width / 2 + (Math.random()-0.5)*200, finishLineY - 1800, 'airplane', {side: Math.random() > 0.5 ? 1 : -1}));
@@ -1059,8 +1091,8 @@
         }
 
         function addPegMesh() {
-            const gridY = 55;
-            const gridX = 70;
+            const gridY = 50;
+            const gridX = 60;
             for (let gy = Math.max(START_BLOCK_Y, 600); gy < finishLineY; gy += gridY) {
                 for (let gx = 40; gx < width - 40; gx += gridX) {
                     const jitterX = gx + (Math.random() - 0.5) * 20;
