@@ -100,34 +100,6 @@
         @keyframes shine { to { background-position: 200% center; } }
         @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-        .camera-tabs {
-            position: absolute;
-            top: 6px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 6px;
-            font-size: 9px;
-            letter-spacing: 0.25em;
-            pointer-events: none;
-            z-index: 60;
-        }
-
-        .camera-tab {
-            padding: 4px 9px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.25);
-            opacity: 0.35;
-            transition: all 0.2s ease;
-            background: rgba(0,0,0,0.35);
-        }
-
-        .camera-tab.active {
-            opacity: 1;
-            border-color: #00F3FF;
-            background: rgba(0,243,255,0.18);
-            box-shadow: 0 0 14px rgba(0,243,255,0.45);
-        }
     </style>
 </head>
 <body>
@@ -177,11 +149,6 @@
             </div>
         </div>
         <div id="cameraModeIndicator" class="absolute top-16 left-1/2 -translate-x-1/2 text-white text-4xl font-black tracking-widest opacity-0 transition-opacity duration-500 flex flex-col items-center pointer-events-none" style="text-shadow: 0 0 15px black;"></div>
-        <div id="cameraTabs" class="camera-tabs">
-            <span class="camera-tab active" data-camera-tab="leader">CÁMARA 1</span>
-            <span class="camera-tab" data-camera-tab="mid">CÁMARA 2</span>
-            <span class="camera-tab" data-camera-tab="tail">CÁMARA 3</span>
-        </div>
     </div>
 
     <div id="hud" class="hidden absolute top-4 right-2 z-40 hud-panel flex flex-col items-end gap-1"></div>
@@ -290,7 +257,7 @@
         const DEFAULT_RADIUS = 6; 
         const EFFECT_DURATION = 600; 
         const MAX_SPEED = 14; 
-        const CAMERA_SWITCH_FRAMES = 360; 
+        const CAMERA_SWITCH_FRAMES = 240; 
         const FINAL_CAMERA_DISTANCE = 1800; 
         const PARACHUTE_DURATION = 60 * 5;
         const PARACHUTE_DRAG = 0.35;
@@ -298,8 +265,9 @@
         const SLOW_DURATION = 60 * 5;
         const SLOW_FACTOR = 0.5;
         const START_BLOCK_Y = 900;
-        const WALL_RAMP_STEP = 280;
+        const WALL_RAMP_STEP = 150;
         const WALL_SPRING_STEP = 520;
+        const CENTER_CROSS_STEP = 1100;
 
         class Star {
             constructor() { this.reset(); this.y = Math.random() * height; }
@@ -885,7 +853,7 @@
 
         function pruneOverlaps(list) {
             const kept = [];
-            list.forEach o => {
+            list.forEach(o => {
                 const rad = obstacleRadius(o);
                 let clash = false;
                 for (let other of kept) {
@@ -993,7 +961,7 @@
                 }
                 if (Math.random() < 0.12 && !isSpecialRow && y > 2000) {
                     let cx = width / 2;
-                    for(let k=0; k<3; k++) { let dir = (k % 2 === 0) ? 1 : -1; let offsetX =  120; obstacles.push(new Obstacle(cx + (dir * offsetX), y + (k * 60), 'ramp', {w: 100, h: 15, side: dir, isBouncy: true})); currentRamps.push({x: cx + (dir * offsetX), w: 100}); obstacles.push(new Obstacle(cx, y + (k * 60) + 30, 'peg')); obstacles.push(new Obstacle(cx - (dir * offsetX * 0.8), y + (k * 60), 'peg')); }
+                    for(let k=0; k<3; k++) { let dir = (k % 2 === 0) ? 1 : -1; let offsetX =   120; obstacles.push(new Obstacle(cx + (dir * offsetX), y + (k * 60), 'ramp', {w: 100, h: 15, side: dir, isBouncy: true})); currentRamps.push({x: cx + (dir * offsetX), w: 100}); obstacles.push(new Obstacle(cx, y + (k * 60) + 30, 'peg')); obstacles.push(new Obstacle(cx - (dir * offsetX * 0.8), y + (k * 60), 'peg')); }
                     y += 180; isSpecialRow = true;
                 }
                 if (mushroomY.length > 0 && y > mushroomY[0]) { mushroomY.shift(); obstacles.push(new Obstacle(width/2 + (Math.random()-0.5)*200, y, 'mushroom')); isSpecialRow = true; }
@@ -1056,6 +1024,7 @@
             obstacles = pruneOverlaps(obstacles);
             addWallRamps();
             addWallSprings();
+            addCenterCrosses();
             ensureLateAirplane();
             obstacles = pruneOverlaps(obstacles);
             addPegMesh();
@@ -1064,8 +1033,8 @@
 
         function addWallRamps() {
             for (let y = START_BLOCK_Y; y < finishLineY; y += WALL_RAMP_STEP) {
-                obstacles.push(new Obstacle(24, y + (Math.random()*90 - 45), 'ramp', {w:50, h:14, side: 1, isBouncy: Math.random() > 0.6}));
-                obstacles.push(new Obstacle(width - 24, y + (Math.random()*90 - 45), 'ramp', {w:50, h:14, side: -1, isBouncy: Math.random() > 0.6}));
+                obstacles.push(new Obstacle(24, y + (Math.random()*90 - 45), 'ramp', {w:50, h:14, side: 1, isBouncy: Math.random() > 0.4}));
+                obstacles.push(new Obstacle(width - 24, y + (Math.random()*90 - 45), 'ramp', {w:50, h:14, side: -1, isBouncy: Math.random() > 0.4}));
             }
         }
 
@@ -1073,6 +1042,12 @@
             for (let y = START_BLOCK_Y + 180; y < finishLineY; y += WALL_SPRING_STEP) {
                 obstacles.push(new Obstacle(38, y, 'spring', {side: 1}));
                 obstacles.push(new Obstacle(width - 38, y + 60, 'spring', {side: -1}));
+            }
+        }
+
+        function addCenterCrosses() {
+            for (let y = START_BLOCK_Y + 500; y < finishLineY - 1000; y += CENTER_CROSS_STEP) {
+                obstacles.push(new Obstacle(width/2 + (Math.random()-0.5)*200, y + (Math.random()-0.5)*100, 'cross'));
             }
         }
 
@@ -1122,12 +1097,11 @@
 
             indicator.innerHTML = `<div>${cameraName}</div><div class="mt-2 flex flex-col gap-1">${namesHtml}</div>`;
             indicator.classList.remove('opacity-0');
-            setActiveCameraTab(modeKey);
 
             if (cameraIndicatorTimeout) clearTimeout(cameraIndicatorTimeout);
             cameraIndicatorTimeout = setTimeout(() => {
                 indicator.classList.add('opacity-0');
-            }, 2500);
+            }, 4000);
         }
 
         function setActiveCameraTab(modeKey) {
