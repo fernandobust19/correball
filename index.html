@@ -499,6 +499,7 @@
                 else if (type === 'cup') { this.r = 30; this.angle = 0; this.baseAngVel = 0.03 * (Math.random()>0.5?1:-1); this.angVel = this.baseAngVel; }
                 else if (type === 'chamfer_bar') { this.w = 50; this.h = 80; }
                 else if (type === 'spiral') { this.r = 35; }
+                else if (type === 'slide') { this.w = props.w || 160; this.h = props.h || 18; this.side = props.side || 1; }
                 else if (type === 'magnet') { this.side = props.side; this.w = 60; this.h = 40; this.extension = 0; this.speed = 0.03 + Math.random() * 0.02; this.phase = Math.random() * Math.PI * 2; this.id = Math.random().toString(36).slice(2); }
                 else if (type === 'wall_saw') { this.side = props.side; this.r = 35; this.angle = 0; this.speed = 0.2 * (this.side === -1 ? 1 : -1); }
                 else if (type === 'mushroom') { this.r = 20; }
@@ -506,7 +507,7 @@
                 else if (type === 'bear') { this.r = 28; this.bearState = 'happy'; this.bearTimer = Math.floor(Math.random() * 200) + 100; }
                 else if (type === 'cross') { this.r = 32; this.angle = Math.random()*Math.PI; this.angVel = 0.05 * (Math.random()>0.5?1:-1); }
                 else if (type === 'vortex') { this.r = 45; this.spin = Math.random()*Math.PI*2; this.strength = 0.12 + Math.random()*0.08; }
-                else if (type === 'airplane') { this.w = 90; this.h = 28; this.side = props.side || (Math.random()>0.5?1:-1); this.phase = Math.random()*Math.PI*2; this.amplitude = 35 + Math.random()*35; this.speed = 0.004 + Math.random()*0.002; }
+                else if (type === 'airplane') { this.w = 120; this.h = 36; this.side = props.side || (Math.random()>0.5?1:-1); this.phase = Math.random()*Math.PI*2; this.amplitude = 35 + Math.random()*35; this.speed = 0.004 + Math.random()*0.002; }
                 else if (type === 'electrifier') { this.r = 28; this.angle = Math.random()*Math.PI; this.zapPhase = Math.random()*Math.PI*2; }
                 else if (type === 'slow_field') { this.r = 40; this.pulse = Math.random()*Math.PI*2; }
             }
@@ -624,9 +625,9 @@
                     ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, this.r); ctx.strokeStyle = '#444'; ctx.lineWidth = 2; ctx.stroke(); 
                     ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fillStyle='#FFF'; ctx.fill();
                 }
-                else if (this.type === 'ramp' || this.type === 'stair') {
+                else if (this.type === 'ramp' || this.type === 'stair' || this.type === 'slide') {
                     ctx.beginPath(); 
-                    let color = (this.type === 'stair') ? '#3b82f6' : '#00ff00';
+                    let color = (this.type === 'stair') ? '#3b82f6' : (this.type === 'slide' ? '#f97316' : '#00ff00');
                     if (this.isBouncy) { color = '#FF00FF'; ctx.shadowColor = '#FF00FF'; ctx.shadowBlur = 10; }
                     
                     const grad = ctx.createLinearGradient(-this.w/2, -this.h/2, this.w/2, this.h/2);
@@ -704,17 +705,28 @@
                     ctx.translate(0, floatY);
                     ctx.fillStyle = '#F4F4F5';
                     ctx.strokeStyle = '#0EA5E9';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 2.5;
                     ctx.beginPath();
                     ctx.moveTo(-this.w/2, 0);
-                    ctx.lineTo(this.w/2, -5 * this.side);
-                    ctx.lineTo(this.w/2, 5 * this.side);
+                    ctx.lineTo(this.w/2, -7 * this.side);
+                    ctx.lineTo(this.w/2, 7 * this.side);
                     ctx.closePath();
                     ctx.fill();
                     ctx.stroke();
                     ctx.fillStyle = '#0EA5E9';
-                    ctx.fillRect(-10, -4, 20, 8);
-                    ctx.fillRect(-this.w/3, -3, 12, 6);
+                    ctx.fillRect(-16, -5, 32, 10);
+                    ctx.fillRect(-this.w/3, -4, 16, 8);
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(this.w/2 - 8, 0, 6, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(14,165,233,0.6)';
+                    ctx.beginPath();
+                    ctx.moveTo(-this.w/2, -this.h/2);
+                    ctx.lineTo(-this.w/2 - 14, -this.h/2 - 8);
+                    ctx.moveTo(-this.w/2, this.h/2);
+                    ctx.lineTo(-this.w/2 - 14, this.h/2 + 8);
+                    ctx.stroke();
                 }
                 else if (this.type === 'electrifier') {
                     ctx.rotate(this.angle);
@@ -807,6 +819,20 @@
                     if (dist < this.r + 15 + ball.r) { let bounceForce = ball.superBounce ? 20 : 10; ball.vel.x = (this.side === -1 ? 1 : -1) * bounceForce; ball.vel.y = -5 - Math.random() * 5; ball.noCollideTimer = 5; }
                     return;
                 }
+                if (this.type === 'airplane') {
+                    const floatY = Math.sin(this.phase) * this.amplitude;
+                    const localY = ball.pos.y - (this.pos.y + floatY);
+                    const localX = ball.pos.x - this.pos.x;
+                    const halfW = this.w/2 + ball.r;
+                    const halfH = this.h/2 + ball.r + 6;
+                    if (Math.abs(localX) < halfW && Math.abs(localY) < halfH) {
+                        ball.parachuteTimer = PARACHUTE_DURATION;
+                        ball.parachuteActive = true;
+                        ball.vel.y = Math.min(ball.vel.y, 1);
+                        ball.noCollideTimer = 20;
+                    }
+                    return;
+                }
                 if (this.type === 'chamfer_bar') {
                     if (ball.pos.x > this.pos.x - this.w/2 - ball.r && ball.pos.x < this.pos.x + this.w/2 + ball.r && ball.pos.y > this.pos.y - this.h/2 - ball.r && ball.pos.y < this.pos.y + this.h/2 + ball.r) {
                         let dx = ball.pos.x - this.pos.x; let dy = ball.pos.y - this.pos.y;
@@ -821,10 +847,34 @@
                     if (localX > -halfW && localX < halfW && localY > -halfH && localY < halfH) { let boostStrength = ball.superBounce ? 20 : 12; let centerDir = (this.pos.x < width/2) ? 1 : -1; ball.vel.x = centerDir * Math.abs(Math.cos(this.rotation)) * boostStrength; ball.vel.y = -Math.abs(Math.sin(this.rotation)) * boostStrength * 0.8; ball.pos.x += ball.vel.x * 1.5; ball.pos.y += ball.vel.y * 1.5; }
                     return;
                 }
-                if (this.type === 'cup') {
+                else if (this.type === 'cup') {
                     if (ball.caughtBy === this || ball.caughtBy) return; let dist = Math.hypot(ball.pos.x - this.pos.x, ball.pos.y - this.pos.y); let openingY = -1 * Math.cos(this.angle); 
                     if (openingY < -0.4 && dist < this.r - 2 && ball.vel.y > -2) { ball.caughtBy = this; this.hasBall = true; }
                     else if (dist < this.r + ball.r) { let ang = Math.atan2(ball.pos.y - this.pos.y, ball.pos.x - this.pos.x); ball.pos.x = this.pos.x + Math.cos(ang) * (this.r + ball.r); ball.pos.y = this.pos.y + Math.sin(ang) * (this.r + ball.r); ball.vel.mult(ball.superBounce ? -0.9 : -0.6); }
+                }
+                else if (this.type === 'airplane') {
+                    const floatY = this.pos.y + Math.sin(this.phase) * this.amplitude;
+                    const dx = ball.pos.x - this.pos.x;
+                    const dy = ball.pos.y - floatY;
+                    if (Math.abs(dx) < this.w / 2 + ball.r && Math.abs(dy) < this.h / 2 + ball.r) {
+                        if (ball.parachuteTimer <= 0) {
+                            ball.parachuteTimer = PARACHUTE_DURATION;
+                            ball.vel.y *= -0.1;
+                            ball.noCollideTimer = 5;
+                        }
+                    }
+                }
+                else if (this.type === 'electrifier') {
+                    let dist = Math.hypot(ball.pos.x - this.pos.x, ball.pos.y - this.pos.y);
+                    if (dist < this.r + ball.r) {
+                        ball.electrifiedTimer = ELECTRIFY_DURATION;
+                    }
+                }
+                else if (this.type === 'slow_field') {
+                    let dist = Math.hypot(ball.pos.x - this.pos.x, ball.pos.y - this.pos.y);
+                    if (dist < this.r + ball.r) {
+                        ball.slowedTimer = SLOW_DURATION;
+                    }
                 }
                 else if (this.type === 'peg') {
                     let dist = Math.hypot(ball.pos.x - this.pos.x, ball.pos.y - this.pos.y);
@@ -834,12 +884,22 @@
                     let dist = Math.hypot(ball.pos.x - this.pos.x, ball.pos.y - this.pos.y);
                     if (dist < this.r + 5) { let ang = Math.atan2(ball.pos.y - this.pos.y, ball.pos.x - this.pos.x); ball.pos.x = this.pos.x + Math.cos(ang) * (this.r + 7); ball.pos.y = this.pos.y + Math.sin(ang) * (this.r + 7); let spinForce = this.angVel * 45; let tx = -Math.sin(ang), ty = Math.cos(ang); ball.vel.x += tx * spinForce; ball.vel.y += ty * spinForce; ball.vel.x += Math.cos(ang) * 3; ball.vel.y += Math.sin(ang) * 3; }
                 }
-                else if (this.type === 'ramp' || this.type === 'stair') {
+                else if (this.type === 'ramp' || this.type === 'stair' || this.type === 'slide') {
                     let margin = 5;
                     if (ball.pos.x > this.pos.x - this.w/2 - ball.r && ball.pos.x < this.pos.x + this.w/2 + ball.r && ball.pos.y > this.pos.y - this.h/2 - ball.r - margin && ball.pos.y < this.pos.y + this.h/2 + ball.r + margin) {
                         let push = (this.side === 1) ? 1 : -1; 
-                        if (this.isBouncy) { ball.vel.x += push * 8; ball.vel.y = -5 - Math.random() * 4; ball.pos.x += push * 4; } 
-                        else { ball.pos.x += push * 2; ball.vel.x += push * 0.5; ball.vel.y *= 0.8; if(this.type === 'stair') ball.vel.y -= 0.5; }
+                        if (this.isBouncy) { 
+                            ball.vel.x += push * 8; 
+                            ball.vel.y = -5 - Math.random() * 4; 
+                            ball.pos.x += push * 4; 
+                        } 
+                        else { 
+                            ball.pos.x += push * 3; 
+                            ball.vel.x += push * 1.2; 
+                            ball.vel.y *= 0.75; 
+                            if(this.type === 'stair') ball.vel.y -= 0.5; 
+                            if(this.type === 'slide') ball.vel.y += 0.4; 
+                        }
                     }
                 }
             }
@@ -992,6 +1052,12 @@
                     if (rightObstacleType < 0.6) { let rw = 35; let rx = width - 20; obstacles.push(new Obstacle(rx, y, 'ramp', {w:rw, h:15, side: -1})); currentRamps.push({x:rx, w:rw}); } 
                     else if (rightObstacleType < 0.7) { obstacles.push(new Obstacle(width-15, y, 'peg')); }
                     else { let sw = 70; let sx = width - 30; obstacles.push(new Obstacle(sx, y, 'stair', {w:sw, h:15, side: -1})); currentRamps.push({x:sx, w:sw}); }
+                    if (!isSpecialRow && Math.random() < 0.22) {
+                        let sx = 40 + Math.random() * (width - 80);
+                        let side = Math.random() > 0.5 ? 1 : -1;
+                        obstacles.push(new Obstacle(sx, y + Math.random()*30 - 15, 'slide', {w: 180, h: 18, side}));
+                        currentRamps.push({x:sx, w:180});
+                    }
                 }
                 let densityBase = placedSpring ? 35 : 80; let density = densityBase + (progress * 65); 
                 if (y >= START_BLOCK_Y) {
@@ -1026,6 +1092,7 @@
             addWallRamps();
             addWallSprings();
             addCenterCrosses();
+            addAirplaneFlybys();
             addZigZagFunnel();
             addFinalStaircase();
             ensureLateAirplane();
@@ -1051,6 +1118,19 @@
         function addCenterCrosses() {
             for (let y = START_BLOCK_Y + 500; y < finishLineY - 1000; y += CENTER_CROSS_STEP) {
                 obstacles.push(new Obstacle(width/2 + (Math.random()-0.5)*200, y + (Math.random()-0.5)*100, 'cross'));
+            }
+        }
+
+        function addAirplaneFlybys() {
+            const count = 5;
+            const startY = START_BLOCK_Y + 1400;
+            const endY = finishLineY - 2200;
+            const step = (endY - startY) / (count - 1);
+            for (let i = 0; i < count; i++) {
+                const y = startY + step * i;
+                const fx = width / 2 + (Math.random() - 0.5) * (width * 0.55);
+                const side = Math.random() > 0.5 ? 1 : -1;
+                obstacles.push(new Obstacle(fx, y, 'airplane', { side }));
             }
         }
 
@@ -1103,7 +1183,8 @@
         }
 
         function ensureLateAirplane() {
-            if (!obstacles.some(o => o.type === 'airplane' && o.pos.y > finishLineY - 2200)) {
+            const airplanes = obstacles.filter(o => o.type === 'airplane');
+            if (airplanes.length < 5 && !airplanes.some(o => o.pos.y > finishLineY - 2200)) {
                 obstacles.push(new Obstacle(width / 2 + (Math.random()-0.5)*200, finishLineY - 1800, 'airplane', {side: Math.random() > 0.5 ? 1 : -1}));
             }
         }
@@ -1126,27 +1207,7 @@
         function showCameraIndicator(cameraName, modeKey) {
             const indicator = document.getElementById('cameraModeIndicator');
             if (!indicator) return;
-
-            const allRanked = [...balls].filter(b => !b.finished).sort((a,b)=>b.pos.y - a.pos.y);
-
-            const visibleBalls = balls.filter(b => {
-                if (b.finished) return false;
-                const yOnScreen = b.pos.y - cameraY;
-                return yOnScreen > -b.r && yOnScreen < height + b.r;
-            }).sort((a,b) => a.pos.y - b.pos.y); // on-screen top to bottom
-
-            let namesHtml = '';
-            if (visibleBalls.length > 0) {
-                namesHtml = visibleBalls.map(b => {
-                    const rank = allRanked.findIndex(rankedBall => rankedBall === b) + 1;
-                    if (rank === 0) return ''; // Ball not in ranked list (e.g. finished)
-                    return `<div class="text-xs md:text-sm font-semibold leading-tight" style="color:${b.color}; text-shadow: 1px 1px 3px black;">
-                                <span class="text-[11px] md:text-xs font-bold text-white/80 w-6 inline-block text-right mr-1">${rank}.</span>${b.name}
-                            </div>`;
-                }).join('');
-            }
-
-            indicator.innerHTML = `<div class="text-sm md:text-base">${cameraName}</div><div class="mt-1 flex flex-col gap-0.5 items-center">${namesHtml}</div>`;
+            indicator.innerHTML = `<div class="text-sm md:text-base">${cameraName}</div>`;
             indicator.classList.remove('opacity-0');
 
             if (cameraIndicatorTimeout) clearTimeout(cameraIndicatorTimeout);
@@ -1219,7 +1280,10 @@
             if (finishedPlayers.length >= 3) podiumOrder.push({p: finishedPlayers[2], rank: 3, cls: 'delay-3', height: 'h-24', color: '#CD7F32', border: 'border-orange-700'});
             podiumOrder.forEach(slot => {
                 let card = document.createElement('div'); card.className = `podium-card ${slot.cls} flex flex-col items-center justify-end w-1/3 h-full`;
-                card.innerHTML = `<div class="${slot.height} w-full rounded-t-lg bg-gray-800 border-4 ${slot.border} flex flex-col items-center justify-end pb-4 shadow-[0_0_30px_${slot.color}] relative group"><div class="vertical-name text-3xl md:text-5xl font-black mb-4 z-10" style="color:${slot.p.color}; text-shadow:2px 2px 0px black;">${slot.p.name.toUpperCase()}</div><div class="absolute -top-8 w-16 h-16 rounded-full border-4 ${slot.border} bg-gray-900 flex items-center justify-center text-3xl font-black text-white shadow-lg z-20">${slot.rank}</div></div>`;
+                card.innerHTML = `<div class="${slot.height} w-full rounded-t-lg bg-gray-800 border-4 ${slot.border} flex flex-col items-center justify-end pb-8 shadow-[0_0_30px_${slot.color}] relative group">
+                        <div class="absolute -top-8 w-16 h-16 rounded-full border-4 ${slot.border} bg-gray-900 flex items-center justify-center text-3xl font-black text-white shadow-lg z-20">${slot.rank}</div>
+                        <div class="absolute bottom-2 left-0 right-0 text-center text-xs md:text-sm font-bold px-2" style="color:${slot.p.color}; text-shadow:1px 1px 3px black;">${slot.p.name}</div>
+                    </div>`;
                 container.appendChild(card);
             });
         }
