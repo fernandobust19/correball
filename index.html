@@ -853,7 +853,7 @@
 
         function pruneOverlaps(list) {
             const kept = [];
-            list.forEach(o => {
+            list.forEach o => {
                 const rad = obstacleRadius(o);
                 let clash = false;
                 for (let other of kept) {
@@ -1086,7 +1086,7 @@
 
             let namesHtml = '';
             if (visibleBalls.length > 0) {
-                namesHtml = visibleBalls.slice(0, 5).map(b => {
+                namesHtml = visibleBalls.map(b => {
                     const rank = allRanked.findIndex(rankedBall => rankedBall === b) + 1;
                     if (rank === 0) return ''; // Ball not in ranked list (e.g. finished)
                     return `<div class="text-xl font-semibold" style="color:${b.color}; text-shadow: 1px 1px 3px black;">
