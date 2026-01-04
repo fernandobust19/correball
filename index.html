@@ -239,7 +239,7 @@
         let stars = []; 
         let confettis = []; 
         let gateOpen = false;
-        let finishLineY = 15000; 
+        let finishLineY = 18000; 
         let cameraY = 0;
         let cameraMode = 'leader';
         let cameraTimer = 0;
@@ -948,7 +948,7 @@
             obstacles = []; let y = 1200; 
             const specials = ['spiral','cup','portal','shuriken','chamfer_bar','bear','spiral','portal','cross','vortex','electrifier','slow_field','airplane'];
             let specialIdx = 0; let nextSpecialY = 1200; const SAFE_DIST_PEG = 10; let lastSpringY = -1000; 
-            let mushroomY = [2000, 5000, 8000, 11000]; let jellyY = [3000, 6000, 9000, 12000, 14000]; 
+            let mushroomY = [2000, 5000, 8000, 11000, 15000]; let jellyY = [3000, 6000, 9000, 12000, 14000, 16000]; 
             const springZones = [ { start: 2400, end: 2600 }, { start: 4400, end: 4600 }, { start: 6400, end: 6600 }, { start: 8400, end: 8600 }, { start: 11400, end: 11600 }, { start: 14400, end: 14600 } ];
 
             let fillerDelay = 0;
@@ -986,14 +986,14 @@
                     }
                 }
                 else {
-                    if (Math.random() > 0.3) { let lw = 35; let lx = 20; obstacles.push(new Obstacle(lx, y, 'ramp', {w:lw, h:15, side: 1})); currentRamps.push({x:lx, w:lw}); } 
+                    if (Math.random() > 0.1) { let lw = 35; let lx = 20; obstacles.push(new Obstacle(lx, y, 'ramp', {w:lw, h:15, side: 1})); currentRamps.push({x:lx, w:lw}); } 
                     else if (y >= START_BLOCK_Y) { obstacles.push(new Obstacle(15, y, 'peg')); }
                     let rightObstacleType = Math.random();
-                    if (rightObstacleType < 0.4) { let rw = 35; let rx = width - 20; obstacles.push(new Obstacle(rx, y, 'ramp', {w:rw, h:15, side: -1})); currentRamps.push({x:rx, w:rw}); } 
-                    else if (rightObstacleType < 0.5) { obstacles.push(new Obstacle(width-15, y, 'peg')); }
+                    if (rightObstacleType < 0.6) { let rw = 35; let rx = width - 20; obstacles.push(new Obstacle(rx, y, 'ramp', {w:rw, h:15, side: -1})); currentRamps.push({x:rx, w:rw}); } 
+                    else if (rightObstacleType < 0.7) { obstacles.push(new Obstacle(width-15, y, 'peg')); }
                     else { let sw = 70; let sx = width - 30; obstacles.push(new Obstacle(sx, y, 'stair', {w:sw, h:15, side: -1})); currentRamps.push({x:sx, w:sw}); }
                 }
-                let densityBase = placedSpring ? 35 : 80; let density = densityBase + (progress * 45); 
+                let densityBase = placedSpring ? 35 : 80; let density = densityBase + (progress * 65); 
                 if (y >= START_BLOCK_Y) {
                     for(let i=0; i<density; i++) {
                         let px = 30 + Math.random() * (width - 60); let py = y + (Math.random() * 45) - 22; let safe = true;
@@ -1027,6 +1027,7 @@
             addWallSprings();
             addCenterCrosses();
             addZigZagFunnel();
+            addFinalStaircase();
             ensureLateAirplane();
             obstacles = pruneOverlaps(obstacles);
             addPegMesh();
@@ -1084,6 +1085,23 @@
             obstacles.push(new Obstacle(funnelX, funnelY + 40, 'peg'));
         }
 
+        function addFinalStaircase() {
+            let y = finishLineY - 1200;
+            const segments = 12;
+            const stepY = 60;
+            const stairWidth = width * 0.7;
+
+            for (let i = 0; i < segments; i++) {
+                const side = (i % 2 === 0) ? -1 : 1;
+                const x = width/2;
+                const currentY = y + i * stepY;
+                obstacles.push(new Obstacle(x, currentY, 'stair', { w: stairWidth, h: 15, side }));
+                
+                const pegX = x + (side * -1 * stairWidth/2) - 10;
+                obstacles.push(new Obstacle(pegX, currentY + 10, 'peg'));
+            }
+        }
+
         function ensureLateAirplane() {
             if (!obstacles.some(o => o.type === 'airplane' && o.pos.y > finishLineY - 2200)) {
                 obstacles.push(new Obstacle(width / 2 + (Math.random()-0.5)*200, finishLineY - 1800, 'airplane', {side: Math.random() > 0.5 ? 1 : -1}));
@@ -1091,8 +1109,8 @@
         }
 
         function addPegMesh() {
-            const gridY = 50;
-            const gridX = 60;
+            const gridY = 35;
+            const gridX = 45;
             for (let gy = Math.max(START_BLOCK_Y, 600); gy < finishLineY; gy += gridY) {
                 for (let gx = 40; gx < width - 40; gx += gridX) {
                     const jitterX = gx + (Math.random() - 0.5) * 20;
