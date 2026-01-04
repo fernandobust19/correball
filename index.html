@@ -260,6 +260,9 @@
         const FINAL_CAMERA_DISTANCE = 1800; 
         const PARACHUTE_DURATION = 60 * 5;
         const PARACHUTE_DRAG = 0.35;
+        const ELECTRIFY_DURATION = 60 * 5;
+        const SLOW_DURATION = 60 * 5;
+        const SLOW_FACTOR = 0.5;
 
         class Star {
             constructor() { this.reset(); this.y = Math.random() * height; }
@@ -313,6 +316,8 @@
                 this.finished = false;
                 this.parachuteTimer = 0;
                 this.parachuteActive = false;
+                this.electrifiedTimer = 0;
+                this.slowedTimer = 0;
             }
 
             update() {
@@ -351,8 +356,15 @@
                     return; 
                 }
 
-                let gravityNow = this.parachuteActive ? GRAVITY * PARACHUTE_DRAG : GRAVITY;
-                let speedCap = this.parachuteActive ? MAX_SPEED * 0.4 : MAX_SPEED;
+                let gravityNow = GRAVITY;
+                if (this.parachuteActive) gravityNow *= PARACHUTE_DRAG;
+                if (this.slowedTimer > 0) gravityNow *= 0.7;
+
+                let speedModifier = 1;
+                if (this.parachuteActive) speedModifier *= 0.4;
+                if (this.slowedTimer > 0) speedModifier *= SLOW_FACTOR;
+                if (this.electrifiedTimer > 0) speedModifier *= 1.15;
+                let speedCap = MAX_SPEED * speedModifier;
 
                 if (gateOpen && !this.caughtBy && !this.magnetizedBy) {
                     this.frameCount++;
@@ -490,6 +502,8 @@
                 else if (type === 'cross') { this.r = 32; this.angle = Math.random()*Math.PI; this.angVel = 0.05 * (Math.random()>0.5?1:-1); }
                 else if (type === 'vortex') { this.r = 45; this.spin = Math.random()*Math.PI*2; this.strength = 0.12 + Math.random()*0.08; }
                 else if (type === 'airplane') { this.w = 90; this.h = 28; this.side = props.side || (Math.random()>0.5?1:-1); this.phase = Math.random()*Math.PI*2; this.amplitude = 35 + Math.random()*35; this.speed = 0.004 + Math.random()*0.002; }
+                else if (type === 'electrifier') { this.r = 28; this.angle = Math.random()*Math.PI; this.zapPhase = Math.random()*Math.PI*2; }
+                else if (type === 'slow_field') { this.r = 40; this.pulse = Math.random()*Math.PI*2; }
             }
 
             update() {
@@ -506,6 +520,8 @@
                 if (this.type === 'cross') this.angle += this.angVel;
                 if (this.type === 'vortex') this.spin += 0.04;
                 if (this.type === 'airplane') this.phase += this.speed;
+                if (this.type === 'electrifier') { this.angle += 0.02; this.zapPhase += 0.25; }
+                if (this.type === 'slow_field') this.pulse += 0.08;
             }
 
             draw() {
@@ -694,6 +710,36 @@
                     ctx.fillStyle = '#0EA5E9';
                     ctx.fillRect(-10, -4, 20, 8);
                     ctx.fillRect(-this.w/3, -3, 12, 6);
+                }
+                else if (this.type === 'electrifier') {
+                    ctx.rotate(this.angle);
+                    ctx.strokeStyle = '#FACC15';
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.shadowColor = '#FACC15';
+                    ctx.shadowBlur = 12 + Math.sin(this.zapPhase) * 4;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.r);
+                    ctx.lineTo(0, 0);
+                    ctx.lineTo(-this.r * 0.7, this.r);
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(this.r * 0.7, this.r);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+                else if (this.type === 'slow_field') {
+                    const pulse = 0.85 + Math.sin(this.pulse) * 0.15;
+                    ctx.fillStyle = `rgba(59,130,246,${0.2 + pulse*0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(0,0,this.r * pulse,0,Math.PI*2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#3B82F6';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5,5]);
+                    ctx.beginPath();
+                    ctx.arc(0,0,this.r * 0.65,0,Math.PI*2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
                 ctx.restore();
             }
@@ -894,7 +940,8 @@
 
         function generateTrack() {
             obstacles = []; let y = 1200; 
-            const specials = ['spiral', 'cup', 'portal', 'shuriken', 'chamfer_bar', 'bear', 'spiral', 'cup', 'shuriken', 'portal', 'chamfer_bar', 'bear', 'spiral', 'portal', 'spiral', 'portal', 'shuriken', 'spiral', 'cross', 'vortex', 'airplane'];
+            const specials = [...'airplane'];
+            specials.push('electrifier','slow_field');
             let specialIdx = 0; let nextSpecialY = 1200; const SAFE_DIST_PEG = 18; let lastSpringY = -1000; 
             let mushroomY = [2000, 5000, 8000, 11000]; let jellyY = [3000, 6000, 9000, 12000, 14000]; 
             const springZones = [ { start: 2400, end: 2600 }, { start: 4400, end: 4600 }, { start: 6400, end: 6600 }, { start: 8400, end: 8600 }, { start: 11400, end: 11600 }, { start: 14400, end: 14600 } ];
@@ -957,6 +1004,21 @@
                 y += 45; 
             }
             obstacles = pruneOverlaps(obstacles);
+            addPegMesh();
+            obstacles = pruneOverlaps(obstacles);
+        }
+
+        function addPegMesh() {
+            const gridY = 70;
+            const gridX = 80;
+            for (let gy = 600; gy < finishLineY; gy += gridY) {
+                for (let gx = 40; gx < width - 40; gx += gridX) {
+                    const jitterX = gx + (Math.random() - 0.5) * 20;
+                    const jitterY = gy + (Math.random() - 0.5) * 20;
+                    const crowded = obstacles.some(o => Math.hypot(o.pos.x - jitterX, o.pos.y - jitterY) < (obstacleRadius(o) + 10));
+                    if (!crowded) obstacles.push(new Obstacle(jitterX, jitterY, 'peg'));
+                }
+            }
         }
 
         function releaseGate() { gateOpen = true; document.getElementById('gameControls').classList.add('fade-out'); startMusic(); }
@@ -1114,7 +1176,11 @@
             }
             if(!raceOver && frameCount % 15 === 0) { 
                 let sorted = [...balls].sort((a,b)=>b.pos.y - a.pos.y);
-                let html = sorted.map((b,i)=> { let status = b.finished ? '🏁' : ''; return `<div class="rank-item" style="color:${b.color};font-weight:bold;">${i+1}. ${b.name.substring(0,8)} ${b.superBounce ? '⚡' : ''} ${b.r < 4 ? '🍄' : ''} ${status}</div>` }).join('');
+                let html = sorted.map((b,i)=> { 
+                    let status = b.finished ? '🏁' : '';
+                    let buffs = `${b.superBounce ? '✨' : ''}${b.electrifiedTimer > 0 ? '⚡' : ''}${b.slowedTimer > 0 ? '🐢' : ''}`;
+                    return `<div class="rank-item" style="color:${b.color};font-weight:bold;">${i+1}. ${b.name.substring(0,8)} ${buffs} ${status}</div>`;
+                }).join('');
                 document.getElementById('hud').innerHTML = html;
             }
             animationId = requestAnimationFrame(loop);
