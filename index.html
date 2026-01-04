@@ -885,7 +885,7 @@
 
         function pruneOverlaps(list) {
             const kept = [];
-            list.forEach o => {
+            list.forEach(o => {
                 const rad = obstacleRadius(o);
                 let clash = false;
                 for (let other of kept) {
@@ -993,7 +993,7 @@
                 }
                 if (Math.random() < 0.12 && !isSpecialRow && y > 2000) {
                     let cx = width / 2;
-                    for(let k=0; k<3; k++) { let dir = (k % 2 === 0) ? 1 : -1; let offsetX =  120; obstacles.push(new Obstacle(cx + (dir * offsetX), y + (k * 60), 'ramp', {w: 100, h: 15, side: dir, isBouncy: true})); currentRamps.push({x: cx + (dir * offsetX), w: 100}); obstacles.push(new Obstacle(cx, y + (k * 60) + 30, 'peg')); obstacles.push(new Obstacle(cx - (dir * offsetX * 0.8), y + (k * 60), 'peg')); }
+                    for(let k=0; k<3; k++) { let dir = (k % 2 === 0) ? 1 : -1; let offsetX =   120; obstacles.push(new Obstacle(cx + (dir * offsetX), y + (k * 60), 'ramp', {w: 100, h: 15, side: dir, isBouncy: true})); currentRamps.push({x: cx + (dir * offsetX), w: 100}); obstacles.push(new Obstacle(cx, y + (k * 60) + 30, 'peg')); obstacles.push(new Obstacle(cx - (dir * offsetX * 0.8), y + (k * 60), 'peg')); }
                     y += 180; isSpecialRow = true;
                 }
                 if (mushroomY.length > 0 && y > mushroomY[0]) { mushroomY.shift(); obstacles.push(new Obstacle(width/2 + (Math.random()-0.5)*200, y, 'mushroom')); isSpecialRow = true; }
