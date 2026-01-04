@@ -148,7 +148,7 @@
                 </button>
             </div>
         </div>
-        <div id="cameraModeIndicator" class="absolute top-16 left-1/2 -translate-x-1/2 text-white text-4xl font-black tracking-widest opacity-0 transition-opacity duration-500 flex flex-col items-center pointer-events-none" style="text-shadow: 0 0 15px black;"></div>
+        <div id="cameraModeIndicator" class="absolute top-16 left-1/2 -translate-x-1/2 text-white text-2xl md:text-3xl font-black tracking-[0.3em] opacity-0 transition-opacity duration-500 flex flex-col items-center pointer-events-none" style="text-shadow: 0 0 15px black;"></div>
     </div>
 
     <div id="hud" class="hidden absolute top-4 right-2 z-40 hud-panel flex flex-col items-end gap-1"></div>
@@ -257,7 +257,7 @@
         const DEFAULT_RADIUS = 6; 
         const EFFECT_DURATION = 600; 
         const MAX_SPEED = 14; 
-        const CAMERA_SWITCH_FRAMES = 240; 
+        const CAMERA_SWITCH_FRAMES = 300; 
         const FINAL_CAMERA_DISTANCE = 1800; 
         const PARACHUTE_DURATION = 60 * 5;
         const PARACHUTE_DRAG = 0.35;
@@ -846,6 +846,7 @@
         }
 
         function obstacleRadius(o) {
+            if (o.type === 'peg') return (o.r || 2.5) + 8;
             if (o.r) return o.r + 12;
             if (o.w && o.h) return Math.max(o.w, o.h) / 2 + 18;
             return 20;
@@ -946,7 +947,7 @@
         function generateTrack() {
             obstacles = []; let y = 1200; 
             const specials = ['spiral','cup','portal','shuriken','chamfer_bar','bear','spiral','portal','cross','vortex','electrifier','slow_field','airplane'];
-            let specialIdx = 0; let nextSpecialY = 1200; const SAFE_DIST_PEG = 18; let lastSpringY = -1000; 
+            let specialIdx = 0; let nextSpecialY = 1200; const SAFE_DIST_PEG = 12; let lastSpringY = -1000; 
             let mushroomY = [2000, 5000, 8000, 11000]; let jellyY = [3000, 6000, 9000, 12000, 14000]; 
             const springZones = [ { start: 2400, end: 2600 }, { start: 4400, end: 4600 }, { start: 6400, end: 6600 }, { start: 8400, end: 8600 }, { start: 11400, end: 11600 }, { start: 14400, end: 14600 } ];
 
@@ -992,7 +993,7 @@
                     else if (rightObstacleType < 0.5) { obstacles.push(new Obstacle(width-15, y, 'peg')); }
                     else { let sw = 70; let sx = width - 30; obstacles.push(new Obstacle(sx, y, 'stair', {w:sw, h:15, side: -1})); currentRamps.push({x:sx, w:sw}); }
                 }
-                let densityBase = placedSpring ? 15 : 40; let density = densityBase + (progress * 30); 
+                let densityBase = placedSpring ? 28 : 65; let density = densityBase + (progress * 40); 
                 if (y >= START_BLOCK_Y) {
                     for(let i=0; i<density; i++) {
                         let px = 30 + Math.random() * (width - 60); let py = y + (Math.random() * 45) - 22; let safe = true;
@@ -1007,7 +1008,7 @@
                         }
                         if (safe) obstacles.push(new Obstacle(px, py, 'peg'));
                     }
-                    if (!isSpecialRow && Math.random() < 0.25) {
+                    if (!isSpecialRow && Math.random() < 0.35) {
                         let extraX = 40 + Math.random() * (width - 80);
                         obstacles.push(new Obstacle(extraX, y + Math.random()*30 - 15, 'peg'));
                     }
@@ -1019,7 +1020,7 @@
                 } else {
                     fillerDelay--;
                 }
-                y += 45; 
+                y += 40; 
             }
             obstacles = pruneOverlaps(obstacles);
             addWallRamps();
@@ -1058,8 +1059,8 @@
         }
 
         function addPegMesh() {
-            const gridY = 70;
-            const gridX = 80;
+            const gridY = 55;
+            const gridX = 70;
             for (let gy = Math.max(START_BLOCK_Y, 600); gy < finishLineY; gy += gridY) {
                 for (let gx = 40; gx < width - 40; gx += gridX) {
                     const jitterX = gx + (Math.random() - 0.5) * 20;
@@ -1089,13 +1090,13 @@
                 namesHtml = visibleBalls.map(b => {
                     const rank = allRanked.findIndex(rankedBall => rankedBall === b) + 1;
                     if (rank === 0) return ''; // Ball not in ranked list (e.g. finished)
-                    return `<div class="text-xl font-semibold" style="color:${b.color}; text-shadow: 1px 1px 3px black;">
-                                <span class="text-lg font-bold text-white/80 w-8 inline-block text-right mr-2">${rank}.</span>${b.name}
+                    return `<div class="text-xs md:text-sm font-semibold leading-tight" style="color:${b.color}; text-shadow: 1px 1px 3px black;">
+                                <span class="text-[11px] md:text-xs font-bold text-white/80 w-6 inline-block text-right mr-1">${rank}.</span>${b.name}
                             </div>`;
                 }).join('');
             }
 
-            indicator.innerHTML = `<div>${cameraName}</div><div class="mt-2 flex flex-col gap-1">${namesHtml}</div>`;
+            indicator.innerHTML = `<div class="text-sm md:text-base">${cameraName}</div><div class="mt-1 flex flex-col gap-0.5 items-center">${namesHtml}</div>`;
             indicator.classList.remove('opacity-0');
 
             if (cameraIndicatorTimeout) clearTimeout(cameraIndicatorTimeout);
