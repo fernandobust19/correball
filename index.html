@@ -853,7 +853,7 @@
 
         function pruneOverlaps(list) {
             const kept = [];
-            list.forEach o => {
+            list.forEach(o => {
                 const rad = obstacleRadius(o);
                 let clash = false;
                 for (let other of kept) {
